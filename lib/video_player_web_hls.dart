@@ -163,7 +163,7 @@ class VideoPlayerPluginHls extends VideoPlayerPlatform {
     return HtmlElementView(viewType: 'videoPlayer-$textureId');
   }
 
-  Future<void> setSrc(String src) async {
+  Future<void> setSrc(int textureId, String src) async {
     return _videoPlayers[textureId]!.setSrc(src);
   }
 
