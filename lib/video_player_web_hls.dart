@@ -387,9 +387,10 @@ class _VideoPlayer {
   }
 
   Future<void> setSrc(String src) async {
-    videoElement.removeAttribute('src');
-    videoElement.load();
     if (src != uri) {
+      videoElement.removeAttribute('src');
+      videoElement.load();
+      _hls?.stopLoad();
       if (isSupported() && src.toString().contains('m3u8')) {
         try {
           _hls = Hls(
