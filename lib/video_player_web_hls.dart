@@ -388,9 +388,7 @@ class _VideoPlayer {
 
   Future<void> setSrc(String src) async {
     if (src != uri) {
-      uri = src;
-      if (isSupported() &&
-          (uri.toString().contains('m3u8') || await _testIfM3u8())) {
+      if (isSupported() && src.toString().contains('m3u8')) {
         try {
           _hls = Hls(
             HlsConfig(
@@ -415,7 +413,7 @@ class _VideoPlayer {
           _hls!.attachMedia(videoElement);
           // print(hls.config.runtimeType);
           _hls!.on('hlsMediaAttached', allowInterop((dynamic _, dynamic __) {
-            _hls!.loadSource(uri.toString());
+            _hls!.loadSource(src.toString());
           }));
           _hls!.on('hlsError', allowInterop((dynamic _, dynamic data) {
             final ErrorData _data = ErrorData(data);
@@ -439,7 +437,7 @@ class _VideoPlayer {
           throw NoScriptTagException();
         }
       } else {
-        videoElement.src = uri.toString();
+        videoElement.src = src.toString();
         videoElement.addEventListener('loadedmetadata', (_) {
           if (!isInitialized) {
             isInitialized = true;
