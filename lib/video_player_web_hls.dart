@@ -391,29 +391,9 @@ class _VideoPlayer {
     videoElement.load();
     _hls?.stopLoad();
     if (src != uri) {
+      isInitialized = false;
       if (isSupported() && src.toString().contains('m3u8')) {
         try {
-          _hls = Hls(
-            HlsConfig(
-              xhrSetup: allowInterop(
-                (HttpRequest xhr, String _) {
-                  if (headers.isEmpty) {
-                    return;
-                  }
-
-                  if (headers.containsKey('useCookies')) {
-                    xhr.withCredentials = true;
-                  }
-                  headers.forEach((String key, String value) {
-                    if (key != 'useCookies') {
-                      xhr.setRequestHeader(key, value);
-                    }
-                  });
-                },
-              ),
-            ),
-          );
-          _hls!.attachMedia(videoElement);
           // print(hls.config.runtimeType);
           _hls!.on('hlsMediaAttached', allowInterop((dynamic _, dynamic __) {
             _hls!.loadSource(src.toString());
