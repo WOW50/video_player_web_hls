@@ -387,6 +387,8 @@ class _VideoPlayer {
   }
 
   Future<void> setSrc(String src) async {
+    videoElement.removeAttribute('src');
+    videoElement.load();
     if (src != uri) {
       if (isSupported() && src.toString().contains('m3u8')) {
         try {
