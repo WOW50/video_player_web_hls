@@ -54,7 +54,7 @@ class VideoPlayerPluginHls extends VideoPlayerPlatform {
   /// Headers to send before fetching a url
   /// Add useCookies key to headers if you want to use cookies
   ///
-  Map<String, String> headers = <String,String>{};
+  Map<String, String> headers = <String, String>{};
 
   @override
   Future<void> init() async {
@@ -163,6 +163,10 @@ class VideoPlayerPluginHls extends VideoPlayerPlatform {
     return HtmlElementView(viewType: 'videoPlayer-$textureId');
   }
 
+  Future<void> setSrc(String src) async {
+    return _videoPlayers[textureId]!.setSrc(src);
+  }
+
   /// Sets the audio mode to mix with other sources (ignored)
   @override
   Future<void> setMixWithOthers(bool mixWithOthers) => Future<void>.value();
@@ -196,19 +200,20 @@ class _VideoPlayer {
 
   Future<bool> _testIfM3u8() async {
     try {
-      final Map<String, String> headers = Map<String,String>.of(this.headers);
+      final Map<String, String> headers = Map<String, String>.of(this.headers);
       if (headers.containsKey('Range') || headers.containsKey('range')) {
         final List<int> range = (headers['Range'] ?? headers['range'])!
             .split('bytes')[1]
             .split('-')
             .map((String e) => int.parse(e))
             .toList();
-        range[1] = min(range[0]+1023, range[1]);
+        range[1] = min(range[0] + 1023, range[1]);
         headers['Range'] = 'bytes=${range[0]}-${range[1]}';
       } else {
         headers['Range'] = 'bytes=0-1023';
       }
-      final http.Response response = await http.get(Uri.parse(uri), headers: headers);
+      final http.Response response =
+          await http.get(Uri.parse(uri), headers: headers);
       final String body = response.body;
       if (!body.contains('#EXTM3U')) {
         return false;
@@ -221,8 +226,9 @@ class _VideoPlayer {
 
   Future<void> initialize() async {
     videoElement = VideoElement()
+      ..id = 'video$textureId'
       ..src = uri
-      ..autoplay = false
+      ..autoplay = true
       ..controls = false
       ..style.border = 'none'
       ..style.height = '100%'
@@ -231,24 +237,23 @@ class _VideoPlayer {
     // Allows Safari iOS to play the video inline
     videoElement.setAttribute('playsinline', 'true');
 
-     // Set autoplay to false since most browsers won't autoplay a video unless it is muted
-    videoElement.setAttribute('autoplay', 'false');
+    // Set autoplay to false since most browsers won't autoplay a video unless it is muted
+    videoElement.setAttribute('autoplay', 'true');
 
     // TODO(hterkelsen): Use initialization parameters once they are available
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(
         'videoPlayer-$textureId', (int viewId) => videoElement);
 
-
-    if (isSupported() && (uri.toString().contains('m3u8') || await _testIfM3u8())) {
+    if (isSupported() &&
+        (uri.toString().contains('m3u8') || await _testIfM3u8())) {
       try {
         _hls = Hls(
           HlsConfig(
             xhrSetup: allowInterop(
               (HttpRequest xhr, String _) {
-                if (headers.isEmpty){
+                if (headers.isEmpty) {
                   return;
-
                 }
 
                 if (headers.containsKey('useCookies')) {
@@ -346,7 +351,7 @@ class _VideoPlayer {
       // playback for any reason, such as permission issues.
       // The rejection handler is called with a DomException.
       // See: https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play
-      final DomException exception = e as DomException; 
+      final DomException exception = e as DomException;
       eventController.addError(PlatformException(
         code: exception.name,
         message: exception.message,
@@ -379,6 +384,71 @@ class _VideoPlayer {
 
   void seekTo(Duration position) {
     videoElement.currentTime = position.inMilliseconds.toDouble() / 1000;
+  }
+
+  Future<void> setSrc(String src) async {
+    if (src != uri) {
+      uri = src;
+      if (isSupported() &&
+          (uri.toString().contains('m3u8') || await _testIfM3u8())) {
+        try {
+          _hls = Hls(
+            HlsConfig(
+              xhrSetup: allowInterop(
+                (HttpRequest xhr, String _) {
+                  if (headers.isEmpty) {
+                    return;
+                  }
+
+                  if (headers.containsKey('useCookies')) {
+                    xhr.withCredentials = true;
+                  }
+                  headers.forEach((String key, String value) {
+                    if (key != 'useCookies') {
+                      xhr.setRequestHeader(key, value);
+                    }
+                  });
+                },
+              ),
+            ),
+          );
+          _hls!.attachMedia(videoElement);
+          // print(hls.config.runtimeType);
+          _hls!.on('hlsMediaAttached', allowInterop((dynamic _, dynamic __) {
+            _hls!.loadSource(uri.toString());
+          }));
+          _hls!.on('hlsError', allowInterop((dynamic _, dynamic data) {
+            final ErrorData _data = ErrorData(data);
+            if (_data.fatal) {
+              eventController.addError(PlatformException(
+                code: _kErrorValueToErrorName[2]!,
+                message: _data.type,
+                details: _data.details,
+              ));
+            }
+          }));
+          videoElement.onCanPlay.listen((dynamic _) {
+            if (!isInitialized) {
+              isInitialized = true;
+              sendInitialized();
+            }
+            setBuffering(false);
+          });
+        } catch (e) {
+          print(e);
+          throw NoScriptTagException();
+        }
+      } else {
+        videoElement.src = uri.toString();
+        videoElement.addEventListener('loadedmetadata', (_) {
+          if (!isInitialized) {
+            isInitialized = true;
+            sendInitialized();
+          }
+          setBuffering(false);
+        });
+      }
+    }
   }
 
   Duration getPosition() {
