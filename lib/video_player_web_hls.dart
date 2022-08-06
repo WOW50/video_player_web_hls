@@ -167,6 +167,14 @@ class VideoPlayerPluginHls extends VideoPlayerPlatform {
     return _videoPlayers[textureId]!.setSrc(src);
   }
 
+  Future<void> enterFullscreen(int textureId) async {
+    return _videoPlayers[textureId]!.enterFullscreen();
+  }
+
+  Future<void> exitFullscreen(int textureId) async {
+    return _videoPlayers[textureId]!.exitFullscreen();
+  }
+
   /// Sets the audio mode to mix with other sources (ignored)
   @override
   Future<void> setMixWithOthers(bool mixWithOthers) => Future<void>.value();
@@ -451,6 +459,14 @@ class _VideoPlayer {
         });
       }
     }
+  }
+
+  void enterFullscreen() {
+    videoElement.enterFullscreen();
+  }
+
+  void exitFullscreen() {
+    videoElement.exitFullscreen();
   }
 
   Duration getPosition() {
