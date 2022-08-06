@@ -399,14 +399,6 @@ class _VideoPlayer {
     videoElement.load();
     _hls?.stopLoad();
     if (src != uri) {
-      if (isInitialized) {
-        eventController.add(
-          VideoEvent(
-            eventType: VideoEventType.initialized,
-            duration: Duration.zero,
-          ),
-        );
-      }
       isInitialized = false;
       if (isSupported() && src.toString().contains('m3u8')) {
         try {
