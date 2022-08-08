@@ -445,6 +445,7 @@ class _VideoPlayer {
             if (!isInitialized) {
               isInitialized = true;
               sendInitialized();
+              videoElement.play();
             }
             setBuffering(false);
           });
